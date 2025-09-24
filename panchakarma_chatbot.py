@@ -1,14 +1,13 @@
 import os
-from dotenv import load_dotenv
 import faiss
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
+import streamlit as st
 
 # --------------------------
-# Load environment variables
+# Configure Gemini API Key
 # --------------------------
-load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # --------------------------
 # Load Knowledge Base
@@ -24,7 +23,7 @@ def load_knowledge_base(file_path="panchakarma_precautions.txt"):
 knowledge_base = load_knowledge_base()
 
 # --------------------------
-# RAG Setup (FAISS + Embeddings)
+# RAG Setup
 # --------------------------
 model = SentenceTransformer('all-MiniLM-L6-v2')
 embeddings = model.encode(knowledge_base)
@@ -95,7 +94,7 @@ Instructions:
         return f"Error generating response: {str(e)}. Check your Gemini API key and internet connection."
 
 # --------------------------
-# Console Mode for testing
+# Optional Console Mode
 # --------------------------
 def run_console_chatbot():
     print("=== Panchakarma Chatbot (Hybrid Gemini Console Mode) ===")
