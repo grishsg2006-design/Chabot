@@ -1,71 +1,43 @@
-# app.py
-import os
-import google.generativeai as genai
-import gradio as gr
+import streamlit as st
+from panchakarma_chatbot import get_gemini_response
 
-# --------------------------
-# Configure Gemini API Key
-# --------------------------
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+st.set_page_config(page_title="Panchakarma Chatbot", page_icon="🧘", layout="wide")
 
-# --------------------------
-# Gemini Response Generator
-# --------------------------
-def get_gemini_response(user_message, therapy_type=None):
-    """
-    Generate response using Gemini AI.
-    Fully AI-based; does NOT rely on any knowledge base.
-    """
-    system_prompt = """
-You are an empathetic Ayurvedic assistant specializing in Panchakarma.
-Answer the user's questions fully, clearly, and accurately.
-- Use bullet points where appropriate.
-- Focus on the therapy type if provided.
-- End with: "This is general guidance based on traditional Ayurveda—consult your qualified practitioner for personalized advice."
-"""
-    if therapy_type:
-        system_prompt += f"\n\nFocus on therapy type: {therapy_type}"
+st.title("🧘 Panchakarma Chatbot")
+st.markdown("Ask any question about Panchakarma or Ayurvedic practices. Powered by **Google Gemini**.")
 
-    prompt = f"{system_prompt}\n\nUser question: {user_message}"
+# Sidebar for therapy type
+with st.sidebar:
+    st.header("Settings")
+    therapy_type_input = st.text_input("Therapy Type (optional):", placeholder="Virechana, Basti, etc.")
+    if st.button("Set Therapy Type"):
+        st.session_state.therapy_type = therapy_type_input
 
-    try:
-        model = genai.GenerativeModel("models/gemini-1.5-flash")
-        response = model.generate_content([{"role": "user", "parts": prompt}])
-        return response.text.strip()
-    except Exception as e:
-        return f"Error generating response: {str(e)}. Check your Gemini API key and internet connection."
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# --------------------------
-# Gradio Chatbot Interface
-# --------------------------
-# Store chat history in-memory
-chat_history = []
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-def chatbot_interface(user_message, therapy_type=""):
-    global chat_history
-    response = get_gemini_response(user_message, therapy_type or None)
-    chat_history.append(("You", user_message))
-    chat_history.append(("Bot", response))
+# Chat input
+if prompt := st.chat_input("Ask your question:"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    # Build formatted chat history for display
-    formatted_history = ""
-    for speaker, message in chat_history:
-        formatted_history += f"**{speaker}:** {message}\n\n"
-    return formatted_history
+    # Generate Gemini AI response
+    with st.chat_message("assistant"):
+        with st.spinner("Generating response..."):
+            response = get_gemini_response(prompt, st.session_state.get("therapy_type"))
+        st.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
-# Create Gradio interface
-iface = gr.Interface(
-    fn=chatbot_interface,
-    inputs=[
-        gr.Textbox(lines=2, placeholder="Ask your question here...", label="Your Question"),
-        gr.Textbox(lines=1, placeholder="Optional: Therapy Type", label="Therapy Type")
-    ],
-    outputs=gr.Markdown(),
-    title="🧘 Panchakarma Chatbot",
-    description="Ask any question about Panchakarma or Ayurvedic practices. Powered by **Google Gemini AI**.",
-    allow_flagging="never"
-)
+# Clear chat history
+if st.button("Clear Chat History"):
+    st.session_state.messages = []
 
-# Launch app
-if __name__ == "__main__":
-    iface.launch()
+st.markdown("---")
+st.caption("*Disclaimer: This chatbot provides general Ayurvedic guidance—consult a certified practitioner for personalized advice.*")
