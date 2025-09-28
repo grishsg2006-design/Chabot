@@ -31,10 +31,8 @@ Answer the user's questions fully, clearly, and accurately.
     prompt = f"{system_prompt}\n\nUser question: {user_message}"
 
     try:
-        gemini_model = genai.GenerativeModel("models/gemini-1.5-flash")
-        response = gemini_model.generate_content([
-            {"role": "user", "parts": prompt}
-        ])
+        gemini_model = genai.GenerativeModel("gemini-1.5-flash-001")  # ✅ Correct model name
+        response = gemini_model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
         return f"Error generating response: {str(e)}. Check your Gemini API key and internet connection."
